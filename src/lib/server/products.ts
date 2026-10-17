@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { type Product, db } from "@/lib/db";
-import { requireAdmin, requireAuth } from "@/lib/session";
+import { requireAuth } from "@/lib/session";
 
 export const productSchema = z.object({
 	name: z.string().trim().min(1, "Name is required").max(120, "Name is too long"),
@@ -24,7 +24,7 @@ export const getProducts = createServerFn({ method: "GET" }).handler(async () =>
 export const createProduct = createServerFn({ method: "POST" })
 	.validator(productSchema)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		await requireAuth();
 		validateProductImage(data.imageUrl);
 		const now = new Date().toISOString();
 		const product = {
@@ -45,7 +45,7 @@ export const updateProduct = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		await requireAuth();
 		validateProductImage(data.imageUrl);
 		const index = db.product.findIndex((p) => p.id === data.id);
 		if (index === -1) {
@@ -70,7 +70,7 @@ export const updateProduct = createServerFn({ method: "POST" })
 export const deleteProduct = createServerFn({ method: "POST" })
 	.validator(z.object({ id: z.string().trim().min(1).max(100) }))
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		await requireAuth();
 		const index = db.product.findIndex((p) => p.id === data.id);
 		if (index === -1) {
 			const err = new Error("Product not found") as Error & { status?: number };

@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Check, Eye, EyeOff, Fingerprint, Leaf, LockKeyhole, Mail, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, Fingerprint, Leaf, LockKeyhole, Mail, ShieldCheck, Sparkles, UserPlus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
@@ -76,10 +76,10 @@ function LoginPage() {
           <div className="auth-v2-story">
             <span className="auth-v2-kicker"><Sparkles size={14} /> IDE BAIK, EKSEKUSI LEBIH RAPI</span>
             <h1>Tempat ide<br />berubah jadi<br /><em>karya nyata.</em></h1>
-            <p>Kelola produk dan tim kreatif dalam satu ruang kerja yang terasa sederhana, fokus, dan aman.</p>
+            <p>Temukan, unggah, dan kelola produk kreatif bersama komunitas dalam satu ruang yang sederhana dan aman.</p>
             <div className="auth-v2-benefits">
               <div><span><Check size={15} /></span><p><strong>Katalog lebih teratur</strong><small>Temukan produk dan pantau stok tanpa ribet.</small></p></div>
-              <div><span><Check size={15} /></span><p><strong>Akses sesuai peran</strong><small>Setiap akun memiliki batas akses yang jelas.</small></p></div>
+              <div><span><Check size={15} /></span><p><strong>Berkarya bersama</strong><small>Setiap anggota dapat mengelola katalog produk.</small></p></div>
             </div>
           </div>
           <div className="auth-v2-showcase-footer"><span><ShieldCheck size={15} /> Workspace terlindungi</span><span>EST. FOR CREATIVE TEAMS</span></div>
@@ -87,10 +87,17 @@ function LoginPage() {
         </aside>
 
         <div className="auth-v2-form-side">
-          <div className="auth-v2-form-top"><span className="auth-v2-secure"><Fingerprint size={15} /> SECURE ACCESS</span><span className="auth-v2-home-link">Administrator workspace</span></div>
+          <div className="auth-v2-form-top">
+            <span className="auth-v2-secure"><Fingerprint size={15} /> SECURE ACCESS</span>
+            {mode === "signin" ? (
+              <button type="button" className="auth-v2-top-signup" onClick={switchMode}>Buat akun <ArrowRight size={15} /></button>
+            ) : (
+              <button type="button" className="auth-v2-top-signup" onClick={switchMode}>Sudah punya akun? Masuk</button>
+            )}
+          </div>
           <section className="auth-v2-card">
             <div className="auth-v2-mobile-brand"><span className="auth-v2-brand-mark"><Leaf size={19} /></span><strong>ekraf<span className="auth-v2-brand-dot">.</span></strong></div>
-            <div className="auth-v2-card-heading"><span className="auth-v2-step">{mode === "signin" ? "01 / SIGN IN" : "01 / CREATE ACCOUNT"}</span><h2>{mode === "signin" ? "Senang melihatmu lagi." : "Mulai ruang kerjamu."}</h2><p>{mode === "signin" ? "Masuk menggunakan akun yang sudah terdaftar." : "Buat akun dan siapkan ruang kerja kreatifmu."}</p></div>
+            <div className="auth-v2-card-heading"><span className="auth-v2-step">{mode === "signin" ? "01 / SIGN IN" : "01 / CREATE ACCOUNT"}</span><h2>{mode === "signin" ? "Senang melihatmu lagi." : "Gabung ke komunitas EKRAF."}</h2><p>{mode === "signin" ? "Masuk menggunakan akun yang sudah terdaftar." : "Buat akun dan siapkan ruang kerja kreatifmu."}</p></div>
             <form onSubmit={handleSubmit} className="auth-form auth-v2-form">
               {mode === "signup" && <label className="field-group"><span>Nama lengkap</span><input className="field-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Stevy Manurung" autoComplete="name" required maxLength={100} /></label>}
               <label className="field-group"><span>Alamat email</span><span className="input-icon-wrap"><Mail size={17} /><input className="field-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" autoComplete="email" required maxLength={254} /></span></label>
@@ -107,7 +114,14 @@ function LoginPage() {
               {error && <div className="auth-error" role="alert">{error}</div>}
               <button className="button-primary auth-submit auth-v2-submit" type="submit" disabled={loading}>{loading ? <><span className="spinner" /> Memproses…</> : <>{mode === "signin" ? "Masuk ke workspace" : "Buat akun"}<ArrowRight size={17} /></>}</button>
             </form>
-            <div className="auth-v2-switch">Akses hanya untuk administrator workspace.</div>
+            <div className="auth-v2-switch">
+              {mode === "signin" ? (
+                <><span>Belum punya akun?</span> <button type="button" className="auth-v2-create-account" onClick={switchMode}><UserPlus size={16} /> Buat akun baru</button></>
+              ) : (
+                <>Sudah punya akun? <button type="button" onClick={switchMode}>Masuk di sini</button></>
+              )}
+            </div>
+            <p className="auth-v2-registration-note">Pendaftaran terbuka untuk semua orang. Setelah terdaftar, kamu dapat menambah, mengedit, dan menghapus produk.</p>
             <div className="auth-v2-note"><LockKeyhole size={14} /><span>Jangan gunakan password yang sama dengan akun penting lainnya.</span></div>
           </section>
           <p className="auth-v2-copyright">© {new Date().getFullYear()} EKRAF WORKSPACE <span>•</span> Built for creative teams</p>

@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, LayoutDashboard, Leaf, Menu, Users, X } from "lucide-react";
+import { Boxes, LayoutDashboard, Leaf, Menu, Users, X } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import BetterAuthHeader from "../integrations/better-auth/header-user";
@@ -21,7 +21,6 @@ export default function Header() {
         <Link to="/" className="brand-lockup"><span className="brand-mark"><Leaf size={20} /></span><span>EKRAF<span className="brand-dot">.</span><small>CREATIVE COMMERCE</small></span></Link>
         <button className="mobile-menu-toggle" type="button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "Tutup navigasi" : "Buka navigasi"}>{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
         <div className={`site-nav-links ${menuOpen ? "is-open" : ""}`}>
-          <Link to="/" className={`site-nav-link ${pathname === "/" ? "is-active" : ""}`} onClick={() => setMenuOpen(false)}><BarChart3 size={16} /> Beranda</Link>
           {navItems.map(({ to, label, icon: Icon }) => <Link key={to} to={to} className={`site-nav-link ${pathname === to || pathname.startsWith(`${to}/`) ? "is-active" : ""}`} onClick={() => setMenuOpen(false)}><Icon size={16} /> {label}</Link>)}
           <div className="site-nav-actions"><ThemeToggle /><BetterAuthHeader /></div>
         </div>

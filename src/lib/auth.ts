@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import { adapter } from "./db";
@@ -15,6 +16,16 @@ if (process.env.NODE_ENV === "production" && !authSecret) {
 }
 
 export const auth = betterAuth({
+	hooks: {
+		before: createAuthMiddleware(async (ctx) => {
+			if (ctx.path === "/sign-up/email") {
+				const password = ctx.body?.password;
+				if (typeof password !== "string" || password.length < 8 || password.length > 128 || !/^[A-Z]/.test(password) || !password.includes(".") || !/\d/.test(password)) {
+					throw new Error("Password harus minimal 8 karakter, diawali huruf besar, mengandung titik (.) dan minimal satu angka.");
+				}
+			}
+		}),
+	},
 	database: adapter,
 	...(authSecret ? { secret: authSecret } : {}),
 	...(authBaseURL ? { baseURL: authBaseURL } : {}),

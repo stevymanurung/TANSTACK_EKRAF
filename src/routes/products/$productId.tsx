@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 
 import { ProductImageInput } from "@/components/products/ProductImageInput";
 import { getServerSession } from "@/lib/server/auth";
-import { getUsers } from "@/lib/server/users";
 import { deleteProduct, getProducts, updateProduct } from "@/lib/server/products";
 import type { Product } from "@/lib/db";
 
@@ -14,7 +13,6 @@ export const Route = createFileRoute("/products/$productId")({
   beforeLoad: async () => {
     const { session } = await getServerSession();
     if (!session) throw redirect({ to: "/login" });
-    try { await getUsers(); } catch { throw redirect({ to: "/setup" }); }
   },
   component: EditProduct,
 });
@@ -26,13 +24,10 @@ function EditProduct() {
   const updateFn = useServerFn(updateProduct);
   const deleteFn = useServerFn(deleteProduct);
   const productQuery = useQuery({ queryKey: ["products"], queryFn: () => getProducts() });
-  const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => getUsers(), retry: false });
   const product = productQuery.data?.find((item) => item.id === productId);
   if (productQuery.isPending) return <main className="app-main page-wrap"><div className="loading-panel"><span className="spinner" /> Memuat detail produk…</div></main>;
   if (productQuery.isError) return <main className="app-main page-wrap"><div className="empty-state"><h2>Produk gagal dimuat</h2><p>{productQuery.error.message}</p><Link to="/products" className="button-secondary">Kembali ke produk</Link></div></main>;
   if (!product) return <main className="app-main page-wrap"><div className="empty-state"><h2>Produk tidak ditemukan</h2><p>Produk mungkin sudah dihapus atau tidak tersedia.</p><Link to="/products" className="button-primary">Kembali ke katalog</Link></div></main>;
-  if (usersQuery.isPending) return <main className="app-main page-wrap"><div className="loading-panel"><span className="spinner" /> Memeriksa hak akses…</div></main>;
-  if (usersQuery.isError) return <ProductReadOnly product={product} />;
   return <ProductEditor key={product.id} product={product} updateFn={updateFn} deleteFn={deleteFn} queryClient={queryClient} navigate={navigate} />;
 }
 

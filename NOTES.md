@@ -27,3 +27,8 @@ The source was updated against `CHEATSHEET.md`. Automated `bun run lint`, `bun r
 - Server-side product mutations already require administrator authorization; these protections remain in place.
 - Initial admin setup remains available at `/setup` for local project initialization.
 - For production, configure `BETTER_AUTH_URL` and a strong `BETTER_AUTH_SECRET`; do not expose `/setup` publicly.
+
+
+## Akses untuk semua anggota
+
+Alur tidak lagi operator-only: pendaftaran tetap tersedia, semua pengguna yang login dapat melakukan CRUD produk melalui UI dan server functions, sementara manajemen pengguna tetap admin-only. Kebijakan password pendaftaran ditegakkan di sisi server selain panduan validasi di formulir.

@@ -542,3 +542,12 @@ body { background: radial-gradient(850px 470px at 0% 0%, rgba(198,218,170,.26), 
 .dark .home-bottom-cta { background: #203426; }
 .dark .search-field input, .dark .users-search input, .dark .sort-field select, .dark .user-row-actions select, .dark .user-mobile-actions select { border-color: #314633; background: #142117; }
 @media (max-width: 720px) { .site-nav { min-height: 66px; }.home-hero, .dashboard-hero { border-radius: 20px; }.content-panel, .catalog-panel, .users-panel { padding: 16px; } }
+.auth-v2-registration-note { margin: 9px 0 0; color: #7a857b; font-size: .72rem; line-height: 1.55; text-align: center; }
+
+
+/* Highly visible registration actions on desktop and mobile. */
+.auth-v2-top-signup { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid #285b3e; border-radius: 12px; color: #fff !important; background: #285b3e; font: inherit; font-size: .76rem; font-weight: 800; text-decoration: none; cursor: pointer; box-shadow: 0 5px 13px rgba(35,75,57,.16); }
+.auth-v2-top-signup:hover { background: #39764e; transform: translateY(-1px); }
+.auth-v2-switch { align-items: center; gap: 8px; }
+.auth-v2-create-account { display: inline-flex !important; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 14px !important; border: 1px solid #b9cfad !important; border-radius: 11px; color: #234b39 !important; background: #e8f0df !important; font-size: .78rem !important; }
+.auth-v2-create-account:hover { background: #dce9d0 !important; }

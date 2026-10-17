@@ -52,3 +52,8 @@ Di Vercel buka **Project → Settings → Environment Variables** lalu tambahkan
 Setelah menyimpan variabel, buka **Deployments** dan lakukan **Redeploy**. Perubahan Environment Variables tidak berlaku pada deployment yang sudah berjalan sampai deployment baru dibuat. Jika masih muncul error, periksa Runtime Logs.
 
 **Penting untuk produksi:** aplikasi ini masih memakai adapter in-memory untuk akun, sesi, role, dan produk. Pada Vercel serverless data bisa hilang saat cold start atau berpindah instance. Untuk penggunaan nyata, migrasikan ke database persisten sebelum mengandalkan login/katalog produksi.
+
+
+## Akses anggota dan keamanan password
+
+Semua akun yang berhasil login dapat melihat katalog dan menambah, mengedit, atau menghapus produk. Manajemen akun dan perubahan peran tetap dibatasi untuk administrator. Saat pendaftaran, password divalidasi di sisi server: minimal 8 karakter, karakter pertama huruf besar, mengandung titik (.) dan setidaknya satu angka. Contoh format: `Ekraf.2026` (gunakan password unik milik sendiri).

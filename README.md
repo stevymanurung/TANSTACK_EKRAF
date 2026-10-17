@@ -40,3 +40,15 @@ bunx tsr generate
 ```
 
 Baca `CHEATSHEET.md` untuk rincian tugas dan `NOTES.md` untuk ringkasan perbaikan serta penjelasan keamanan.
+
+
+## Deploy ke Vercel (wajib)
+
+Di Vercel buka **Project → Settings → Environment Variables** lalu tambahkan variabel untuk **Production** (dan Preview bila diperlukan):
+
+- `BETTER_AUTH_URL` = URL domain deployment, misalnya `https://tanstack-ekraf-two.vercel.app`
+- `BETTER_AUTH_SECRET` = secret acak kuat, minimal 32 karakter. Buat dengan `bun -e \"console.log(crypto.randomUUID()+crypto.randomUUID())\"` atau generator secret tepercaya. Jangan gunakan contoh publik dan jangan commit nilai ini ke GitHub.
+
+Setelah menyimpan variabel, buka **Deployments** dan lakukan **Redeploy**. Perubahan Environment Variables tidak berlaku pada deployment yang sudah berjalan sampai deployment baru dibuat. Jika masih muncul error, periksa Runtime Logs.
+
+**Penting untuk produksi:** aplikasi ini masih memakai adapter in-memory untuk akun, sesi, role, dan produk. Pada Vercel serverless data bisa hilang saat cold start atau berpindah instance. Untuk penggunaan nyata, migrasikan ke database persisten sebelum mengandalkan login/katalog produksi.

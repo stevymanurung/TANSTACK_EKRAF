@@ -1,17 +1,13 @@
-import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Eye, EyeOff, Fingerprint, Leaf, LockKeyhole, Mail, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
-import { getServerSession } from "@/lib/server/auth";
-
-export const Route = createFileRoute("/login")({
-  beforeLoad: async () => {
-    const { session } = await getServerSession();
-    if (session) throw redirect({ to: "/dashboard" });
-  },
-  component: LoginPage,
-});
+/* Keep the login route renderable even when a stale or partially valid session cookie exists.
+ * Protected routes perform the authoritative server-side session check. This avoids
+ * a /login <-> /dashboard redirect loop during local development and after deploys.
+ */
+export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -91,7 +87,7 @@ function LoginPage() {
         </aside>
 
         <div className="auth-v2-form-side">
-          <div className="auth-v2-form-top"><span className="auth-v2-secure"><Fingerprint size={15} /> SECURE ACCESS</span><Link to="/" className="auth-v2-home-link">Kembali ke beranda</Link></div>
+          <div className="auth-v2-form-top"><span className="auth-v2-secure"><Fingerprint size={15} /> SECURE ACCESS</span><span className="auth-v2-home-link">Administrator workspace</span></div>
           <section className="auth-v2-card">
             <div className="auth-v2-mobile-brand"><span className="auth-v2-brand-mark"><Leaf size={19} /></span><strong>ekraf<span className="auth-v2-brand-dot">.</span></strong></div>
             <div className="auth-v2-card-heading"><span className="auth-v2-step">{mode === "signin" ? "01 / SIGN IN" : "01 / CREATE ACCOUNT"}</span><h2>{mode === "signin" ? "Senang melihatmu lagi." : "Mulai ruang kerjamu."}</h2><p>{mode === "signin" ? "Masuk menggunakan akun yang sudah terdaftar." : "Buat akun dan siapkan ruang kerja kreatifmu."}</p></div>
@@ -111,7 +107,7 @@ function LoginPage() {
               {error && <div className="auth-error" role="alert">{error}</div>}
               <button className="button-primary auth-submit auth-v2-submit" type="submit" disabled={loading}>{loading ? <><span className="spinner" /> Memproses…</> : <>{mode === "signin" ? "Masuk ke workspace" : "Buat akun"}<ArrowRight size={17} /></>}</button>
             </form>
-            <div className="auth-v2-switch">{mode === "signin" ? "Pengguna baru di Ekraf?" : "Sudah memiliki akun?"}<button type="button" onClick={switchMode}>{mode === "signin" ? "Buat akun" : "Masuk"}</button></div>
+            <div className="auth-v2-switch">Akses hanya untuk administrator workspace.</div>
             <div className="auth-v2-note"><LockKeyhole size={14} /><span>Jangan gunakan password yang sama dengan akun penting lainnya.</span></div>
           </section>
           <p className="auth-v2-copyright">© {new Date().getFullYear()} EKRAF WORKSPACE <span>•</span> Built for creative teams</p>

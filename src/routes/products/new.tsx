@@ -12,7 +12,7 @@ export const Route = createFileRoute("/products/new")({
   beforeLoad: async () => {
     const { session } = await getServerSession();
     if (!session) throw redirect({ to: "/login" });
-    try { await getUsers(); } catch { throw redirect({ to: "/dashboard" }); }
+    try { await getUsers(); } catch { throw redirect({ to: "/setup" }); }
   },
   component: NewProduct,
 });

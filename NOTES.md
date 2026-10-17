@@ -15,3 +15,15 @@ The app entry route previously allowed visitors to view a public landing page be
 ## Verification status
 
 The source was updated against `CHEATSHEET.md`. Automated `bun run lint`, `bun run build`, and route regeneration could not be executed in this environment because Bun/dependencies were unavailable and package installation timed out. Run the commands in the cheatsheet locally before merging.
+
+## Catalog startup seed fix
+- The demo catalog now seeds 12 sample products when the server process initializes, so local development does not depend on visiting `/setup` just to see products.
+- Existing product names are checked before seeding; existing products are not overwritten or deleted.
+- This remains an in-memory demo implementation. Vercel serverless functions do not share reliable mutable memory across requests/cold starts. For persistent production accounts and product CRUD, connect a persistent database before treating the deployed site as production-ready.
+
+## Admin-only workspace flow
+- The login screen now presents a single administrator sign-in flow; public sign-up toggle is hidden.
+- Dashboard, catalog, product create/detail, and user-management routes check administrator access before rendering.
+- Server-side product mutations already require administrator authorization; these protections remain in place.
+- Initial admin setup remains available at `/setup` for local project initialization.
+- For production, configure `BETTER_AUTH_URL` and a strong `BETTER_AUTH_SECRET`; do not expose `/setup` publicly.

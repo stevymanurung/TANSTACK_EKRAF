@@ -11,7 +11,7 @@ import { deleteProduct, getProducts } from "@/lib/server/products";
 import { getUsers } from "@/lib/server/users";
 
 export const Route = createFileRoute("/products/")({
-  beforeLoad: async () => { const { session } = await getServerSession(); if (!session) throw redirect({ to: "/login" }); },
+  beforeLoad: async () => { const { session } = await getServerSession(); if (!session) throw redirect({ to: "/login" }); try { await getUsers(); } catch { throw redirect({ to: "/setup" }); } },
   component: Products,
 });
 

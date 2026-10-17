@@ -14,6 +14,7 @@ export const Route = createFileRoute("/products/$productId")({
   beforeLoad: async () => {
     const { session } = await getServerSession();
     if (!session) throw redirect({ to: "/login" });
+    try { await getUsers(); } catch { throw redirect({ to: "/setup" }); }
   },
   component: EditProduct,
 });

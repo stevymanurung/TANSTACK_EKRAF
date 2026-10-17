@@ -12,21 +12,3 @@ dist-ssr
 __unconfig*
 todos.json
 student-assignment.html
-
-# Dependencies
-node_modules/
-
-# Environment variables / secrets
-.env
-.env.*
-!.env.example
-
-# Build output
-dist/
-.output/
-.vercel/
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-bun-debug.log*

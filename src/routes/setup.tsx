@@ -18,7 +18,7 @@ function Setup() {
 			const result = await seedAdminFn();
 			setStatus("success");
 			setMessage(
-				`${result.alreadySeeded ? "Akun administrator sudah tersedia." : "Akun administrator berhasil dibuat."} ${result.productsAdded > 0 ? `${result.productsAdded} produk contoh ditambahkan.` : "Semua produk contoh sudah tersedia."} Total katalog: ${result.totalProducts} produk. ${result.alreadySeeded ? "Silakan masuk melalui /login." : "Masuk melalui /login menggunakan admin@example.com / admin12345."}`,
+				`${result.alreadySeeded ? "Akun administrator sudah tersedia." : "Akun administrator berhasil dibuat."} ${result.productsAdded > 0 ? `${result.productsAdded} produk contoh ditambahkan.` : "Semua produk contoh sudah tersedia."} Total katalog: ${result.totalProducts} produk. ${result.alreadySeeded ? "Silakan masuk melalui /login." : "Masuk melalui /login menggunakan admin@example.com / Ekraf.2026."}`,
 			);
 		} catch (err) {
 			setStatus("error");

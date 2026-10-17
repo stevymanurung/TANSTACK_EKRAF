@@ -14,7 +14,7 @@ bun dev
 Buka `http://localhost:3000/setup`, lalu pilih **Siapkan Akun Administrator**. Jika katalog kosong, proses setup juga mengisi empat produk contoh bertema produk kreatif lokal (ulos, kopi, kerajinan kayu, dan tas anyaman). Setelah itu masuk lewat `/login` menggunakan akun awal:
 
 - Email: `admin@example.com`
-- Password: `admin12345`
+- Password: `Ekraf.2026`
 
 Segera ganti kredensial awal sebelum aplikasi dipakai pada lingkungan bersama. Seed bersifat idempoten: pemanggilan ulang tidak membuat akun admin duplikat.
 

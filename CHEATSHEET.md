@@ -13,7 +13,7 @@ cp .env.example .env.local    # fill BETTER_AUTH_URL + BETTER_AUTH_SECRET
 bun dev                       # http://localhost:3000
 ```
 
-1. Visit `/setup` → click **Seed Admin Account** (creates `admin@example.com` / `admin12345` + sample products).
+1. Visit `/setup` → click **Seed Admin Account** (creates `admin@example.com` / `Ekraf.2026` + sample products).
 2. Sign in at `/demo/better-auth`.
 3. Explore `/dashboard`, `/products`, `/users`.
 

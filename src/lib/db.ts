@@ -75,7 +75,7 @@ export const adapter = memoryAdapter(memoryDb);
 export const db = memoryDb;
 
 export const SEED_ADMIN_EMAIL = "admin@example.com";
-export const SEED_ADMIN_PASSWORD = "admin12345";
+export const SEED_ADMIN_PASSWORD = "Ekraf.2026";
 
 export function getUserRole(userId: string): Role {
 	return db.userRole.find((r) => r.userId === userId)?.role ?? "user";

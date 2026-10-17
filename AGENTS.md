@@ -69,10 +69,10 @@ There is no persistent database. Data lives in memory for the life of the server
 
 1. Visit `/setup` and click **Seed Admin Account**.
 2. This calls `seedAdmin` (a TanStack Start server function) which:
-   - Creates `admin@example.com` / `admin12345` via `auth.api.signUpEmail` (password hashed by Better Auth) into the memory adapter.
+   - Creates `admin@example.com` / `Ekraf.2026` via `auth.api.signUpEmail` (password hashed by Better Auth) into the memory adapter.
    - Assigns the `admin` role.
    - Seeds 3 sample products.
-3. Sign in at `/login` with `admin@example.com` / `admin12345`.
+3. Sign in at `/login` with `admin@example.com` / `Ekraf.2026`.
 4. Open `/dashboard`, then `/products` or `/users`.
 
 ## Routes

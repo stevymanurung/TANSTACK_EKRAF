@@ -12,7 +12,7 @@ Paket ini menggabungkan revisi UI, dashboard, katalog produk, form tambah/edit p
 6. Jalankan `bun dev`.
 7. Buka `/setup` dan tekan **Siapkan Akun Administrator**, lalu login di `/login`.
 
-Kredensial seed pengembangan yang ditampilkan oleh aplikasi: `admin@example.com` / `admin12345`. Ganti password sebelum penggunaan nyata.
+Kredensial seed pengembangan yang ditampilkan oleh aplikasi: `admin@example.com` / `Ekraf.2026`. Ganti password sebelum penggunaan nyata.
 
 ## Deployment Vercel
 

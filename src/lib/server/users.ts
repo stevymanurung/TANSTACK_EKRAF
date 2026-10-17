@@ -5,7 +5,7 @@ import { db, getUserRole, removeUserRole, setUserRole } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 
 export const userRoleSchema = z.object({
-	userId: z.string(),
+	userId: z.string().trim().min(1).max(100),
 	role: z.enum(["admin", "user"]),
 });
 
@@ -24,15 +24,27 @@ export const getUsers = createServerFn({ method: "GET" }).handler(async () => {
 export const updateUserRole = createServerFn({ method: "POST" })
 	.validator(userRoleSchema)
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const { user } = await requireAdmin();
+		if (data.userId === user.id && data.role !== "admin") {
+			throw new Error("You cannot remove your own administrator role.");
+		}
+		const target = db.user.find((entry) => entry.id === data.userId);
+		if (!target) throw new Error("User not found.");
+		if (getUserRole(data.userId) === "admin" && data.role !== "admin") {
+			const admins = db.user.filter((entry) => getUserRole(entry.id) === "admin");
+			if (admins.length <= 1) throw new Error("Cannot demote the last administrator.");
+		}
 		setUserRole(data.userId, data.role);
 		return { ok: true };
 	});
 
 export const deleteUser = createServerFn({ method: "POST" })
-	.validator(z.object({ userId: z.string() }))
+	.validator(z.object({ userId: z.string().trim().min(1).max(100) }))
 	.handler(async ({ data }) => {
-		await requireAdmin();
+		const { user } = await requireAdmin();
+		if (data.userId === user.id) throw new Error("You cannot delete your own account while signed in as administrator.");
+		const target = db.user.find((entry) => entry.id === data.userId);
+		if (!target) throw new Error("User not found.");
 		// Prevent removing the last administrator so the app never locks itself out.
 		const role = getUserRole(data.userId);
 		if (role === "admin") {

@@ -1,219 +1,77 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { createColumnHelper, flexRender, tableFeatures, useTable } from "@tanstack/react-table";
-import { useState } from "react";
+import { Search, ShieldCheck, Shield, Trash2, Users as UsersIcon, UserRound, RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import type { Role } from "@/lib/db";
+import { UserRoleModal } from "@/components/users/UserRoleModal";
 import { getServerSession } from "@/lib/server/auth";
-import { deleteUser, getUsers, updateUserRole } from "@/lib/server/users";
-
-type UserRow = {
-	id: string;
-	email: string;
-	name: string | null;
-	role: Role;
-	emailVerified: boolean;
-	createdAt: string;
-};
+import { deleteUser, getUsers } from "@/lib/server/users";
 
 export const Route = createFileRoute("/users/")({
-	beforeLoad: async () => {
-		const { session } = await getServerSession();
-		if (!session) {
-			return redirect({ to: "/demo/better-auth" }) as any;
-		}
-	},
-	component: Users,
+  beforeLoad: async () => {
+    const { session } = await getServerSession();
+    if (!session) throw redirect({ to: "/login" });
+  },
+  component: Users,
 });
 
+type UserRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  emailVerified: boolean;
+  createdAt: string;
+};
+
 function Users() {
-	const queryClient = useQueryClient();
-	const usersQuery = useQuery({
-		queryKey: ["users"],
-		queryFn: async () => getUsers(),
-	});
-	const updateRoleFn = useServerFn(updateUserRole);
-	const deleteFn = useServerFn(deleteUser);
+  const queryClient = useQueryClient();
+  const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => getUsers(), retry: false });
+  const deleteFn = useServerFn(deleteUser);
+  const [search, setSearch] = useState("");
+  const [busyUser, setBusyUser] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserRow | undefined>();
+  const users = usersQuery.data ?? [];
+  const admins = users.filter((user) => user.role === "admin").length;
+  const filteredUsers = useMemo(() => users.filter((user) => `${user.name ?? ""} ${user.email}`.toLowerCase().includes(search.toLowerCase())), [users, search]);
 
-	const features = tableFeatures({});
-	const columnHelper = createColumnHelper<typeof features, UserRow>();
 
-	const columns = columnHelper.columns([
-		columnHelper.accessor("name", { header: "Name" }),
-		columnHelper.accessor("email", { header: "Email" }),
-		columnHelper.accessor("role", {
-			header: "Role",
-			cell: (info) => {
-				const user = info.row.original as UserRow;
-				return (
-					<RoleSelect
-						userId={user.id}
-						role={user.role}
-						updateRoleFn={updateRoleFn}
-						queryClient={queryClient}
-					/>
-				);
-			},
-		}),
-		columnHelper.accessor("emailVerified", {
-			header: "Verified",
-			cell: (info) => (info.getValue() ? "Yes" : "No"),
-		}),
-		columnHelper.accessor("createdAt", {
-			header: "Joined",
-			cell: (info) => new Date(info.getValue() as string).toLocaleDateString(),
-		}),
-		columnHelper.display({
-			id: "actions",
-			header: "Actions",
-			cell: (info) => {
-				const user = info.row.original as UserRow;
-				if (user.role === "admin") {
-					const adminCount = usersQuery.data?.filter((u) => u.role === "admin").length ?? 0;
-					if (adminCount <= 1) {
-						return <span className="text-xs text-[var(--sea-ink-soft)]">Last admin</span>;
-					}
-				}
-				return (
-					<button
-						type="button"
-						onClick={() => void handleDelete(user.id)}
-						className="text-xs text-red-600 hover:text-red-900 underline underline-offset-4"
-					>
-						Delete
-					</button>
-				);
-			},
-		}),
-	]);
+  async function removeUser(user: UserRow) {
+    if (!window.confirm(`Hapus akun ${user.name || user.email}? Tindakan ini tidak dapat dibatalkan.`)) return;
+    setBusyUser(user.id); setError(""); setNotice("");
+    try {
+      await deleteFn({ data: { userId: user.id } });
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      setNotice(`Akun ${user.name || user.email} berhasil dihapus.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Pengguna gagal dihapus.");
+    } finally { setBusyUser(""); }
+  }
 
-	const table = useTable({
-		features,
-		columns,
-		data: usersQuery.data ?? [],
-	});
+  if (usersQuery.isError) {
+    return <main className="app-main page-wrap"><section className="users-error-panel"><span className="users-stat-icon"><Shield size={22} /></span><h1>Akses administrator diperlukan</h1><p>Halaman manajemen pengguna hanya tersedia untuk akun administrator.</p><button className="button-secondary" onClick={() => void usersQuery.refetch()}><RefreshCw size={16} /> Coba lagi</button></section></main>;
+  }
 
-	const handleDelete = async (userId: string) => {
-		if (!window.confirm("Delete this user?")) {
-			return;
-		}
-		try {
-			await deleteFn({ data: { userId } });
-			await queryClient.invalidateQueries({ queryKey: ["users"] });
-		} catch (err) {
-			window.alert(err instanceof Error ? err.message : "Delete failed");
-		}
-	};
-
-	return (
-		<main className="page-wrap px-4 py-12">
-			<section className="island-shell rounded-2xl p-6 sm:p-8">
-				<div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-					<div>
-						<p className="island-kicker mb-2">Users</p>
-						<h1 className="display-title mb-1 text-3xl font-bold text-[var(--sea-ink)] sm:text-4xl">
-							Users
-						</h1>
-						<p className="m-0 text-[var(--sea-ink-soft)]">
-							Manage user accounts and roles. Administrator only.
-						</p>
-					</div>
-				</div>
-
-				<div className="overflow-x-auto">
-					<table className="w-full text-sm border-collapse">
-						<thead>
-							{table.getHeaderGroups().map((headerGroup) => (
-								<tr key={headerGroup.id}>
-									{headerGroup.headers.map((header) => {
-										return (
-											<th
-												key={header.id}
-												colSpan={header.colSpan}
-												className="px-4 py-3 text-left text-xs font-semibold text-[var(--sea-ink-soft)] bg-[var(--chip-bg)]"
-											>
-												{header.isPlaceholder
-													? null
-													: flexRender(header.column.columnDef.header, header.getContext())}
-											</th>
-										);
-									})}
-								</tr>
-							))}
-						</thead>
-						<tbody>
-							{table.getRowModel().rows.map((row) => {
-								return (
-									<tr key={row.id} className="border-b border-[var(--line)]">
-										{row.getAllCells().map((cell) => {
-											return (
-												<td key={cell.id} className="px-4 py-3">
-													{flexRender(cell.column.columnDef.cell, cell.getContext())}
-												</td>
-											);
-										})}
-									</tr>
-								);
-							})}
-							{table.getRowModel().rows.length === 0 && (
-								<tr>
-									<td
-										colSpan={columns.length}
-										className="px-4 py-8 text-center text-[var(--sea-ink-soft)]"
-									>
-										No users yet.
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</div>
-
-				{usersQuery.isError && (
-					<p className="mt-4 text-sm text-red-600">
-						Failed to load users: {(usersQuery.error as Error).message}
-					</p>
-				)}
-			</section>
-		</main>
-	);
-}
-
-function RoleSelect({
-	userId,
-	role,
-	updateRoleFn,
-	queryClient,
-}: {
-	userId: string;
-	role: Role;
-	updateRoleFn: (opts: {
-		data: { userId: string; role: Role };
-	}) => Promise<unknown>;
-	queryClient: ReturnType<typeof useQueryClient>;
-}) {
-	const [localRole, setLocalRole] = useState<Role>(role);
-
-	const handleChange = async (next: Role) => {
-		if (next === localRole) return;
-		try {
-			await updateRoleFn({ data: { userId, role: next } });
-			setLocalRole(next);
-			await queryClient.invalidateQueries({ queryKey: ["users"] });
-		} catch (err) {
-			window.alert(err instanceof Error ? err.message : "Role update failed");
-		}
-	};
-
-	return (
-		<select
-			value={localRole}
-			onChange={(e) => handleChange(e.target.value as Role)}
-			className="text-xs rounded border border-[var(--line)] bg-[var(--chip-bg)] px-2 py-1 text-[var(--sea-ink)] focus:outline-none"
-		>
-			<option value="user">User</option>
-			<option value="admin">Administrator</option>
-		</select>
-	);
+  return <main className="app-main page-wrap users-page">
+    <section className="page-heading users-heading"><div><span className="eyebrow"><span className="status-dot" /> RUANG KERJA / AKSES</span><h1>Manajemen pengguna</h1><p>Kelola akun, tinjau status verifikasi, dan atur akses workspace dengan aman.</p></div><span className="heading-icon"><UsersIcon size={24} /></span></section>
+    <section className="users-stats-grid">
+      <article className="users-stat-card"><span className="users-stat-icon"><UsersIcon size={19} /></span><div><span>Total pengguna</span><strong>{usersQuery.isPending ? "—" : users.length}</strong><small>Seluruh akun terdaftar</small></div></article>
+      <article className="users-stat-card"><span className="users-stat-icon admin"><ShieldCheck size={19} /></span><div><span>Administrator</span><strong>{usersQuery.isPending ? "—" : admins}</strong><small>Memiliki akses penuh</small></div></article>
+      <article className="users-stat-card"><span className="users-stat-icon verified"><UserRound size={19} /></span><div><span>Email terverifikasi</span><strong>{usersQuery.isPending ? "—" : users.filter((user) => user.emailVerified).length}</strong><small>Dari semua pengguna</small></div></article>
+    </section>
+    <section className="users-panel">
+      <div className="users-panel-heading"><div><h2>Daftar akun</h2><p>{filteredUsers.length} pengguna ditampilkan</p></div><label className="users-search"><Search size={17} /><input aria-label="Cari pengguna" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama atau email…" /></label></div>
+      {error && <div className="form-error" role="alert">{error}</div>}{notice && <div className="form-success" role="status">{notice}</div>}
+      {usersQuery.isPending ? <div className="loading-panel"><span className="spinner" /> Memuat daftar pengguna…</div> : filteredUsers.length === 0 ? <div className="empty-state"><span className="empty-state-icon"><UsersIcon size={24} /></span><h3>{search ? "Pengguna tidak ditemukan" : "Belum ada pengguna"}</h3><p>{search ? "Coba kata kunci lain." : "Akun yang terdaftar akan muncul di sini."}</p></div> : <>
+        <div className="users-table-wrap"><table className="users-table"><thead><tr><th>Pengguna</th><th>Peran</th><th>Status email</th><th>Bergabung</th><th className="users-action-column">Tindakan</th></tr></thead><tbody>{filteredUsers.map((user) => <tr key={user.id}><td><div className="user-identity"><span className="user-avatar">{(user.name || user.email).charAt(0).toUpperCase()}</span><span><strong>{user.name || "Tanpa nama"}</strong><small>{user.email}</small></span></div></td><td><span className={`role-badge ${user.role === "admin" ? "role-admin" : "role-user"}`}>{user.role === "admin" ? <ShieldCheck size={13} /> : <UserRound size={13} />}{user.role === "admin" ? "Administrator" : "Pengguna"}</span></td><td><span className={`verification-badge ${user.emailVerified ? "is-verified" : "is-unverified"}`}><i />{user.emailVerified ? "Terverifikasi" : "Belum diverifikasi"}</span></td><td>{new Date(user.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td><td><div className="user-row-actions"><button className="role-edit-button" type="button" disabled={busyUser === user.id} onClick={() => setSelectedUser(user)}>Ubah peran</button><button className="icon-action danger-action" type="button" aria-label={`Hapus ${user.email}`} title="Hapus akun" disabled={busyUser === user.id || (user.role === "admin" && admins <= 1)} onClick={() => void removeUser(user)}><Trash2 size={16} /></button></div></td></tr>)}</tbody></table></div>
+        <div className="users-mobile-list">{filteredUsers.map((user) => <article className="user-mobile-card" key={user.id}><div className="user-mobile-head"><div className="user-identity"><span className="user-avatar">{(user.name || user.email).charAt(0).toUpperCase()}</span><span><strong>{user.name || "Tanpa nama"}</strong><small>{user.email}</small></span></div><span className={`role-badge ${user.role === "admin" ? "role-admin" : "role-user"}`}>{user.role === "admin" ? "Admin" : "Pengguna"}</span></div><div className="user-mobile-meta"><span className={`verification-badge ${user.emailVerified ? "is-verified" : "is-unverified"}`}><i />{user.emailVerified ? "Terverifikasi" : "Belum diverifikasi"}</span><small>Bergabung {new Date(user.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</small></div><div className="user-mobile-actions"><button className="button-secondary" type="button" disabled={busyUser === user.id} onClick={() => setSelectedUser(user)}>Ubah peran</button><button className="button-danger" type="button" disabled={busyUser === user.id || (user.role === "admin" && admins <= 1)} onClick={() => void removeUser(user)}><Trash2 size={15} /> Hapus akun</button></div></article>)}</div>
+      </>}
+      <div className="users-panel-foot"><ShieldCheck size={16} /><span>Perubahan peran dan penghapusan akun diverifikasi ulang di server.</span></div>
+    </section>
+    {selectedUser && <UserRoleModal user={selectedUser} adminCount={admins} onClose={() => setSelectedUser(undefined)} onSaved={() => { setSelectedUser(undefined); setNotice(`Peran ${selectedUser.name || selectedUser.email} berhasil diperbarui.`); setError(""); }} />}
+  </main>;
 }

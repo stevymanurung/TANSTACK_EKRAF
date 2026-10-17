@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute, redirect, useParams } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, CalendarDays, Mail, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import type { Role } from "@/lib/db";
@@ -8,124 +9,61 @@ import { getServerSession } from "@/lib/server/auth";
 import { deleteUser, getUsers, updateUserRole } from "@/lib/server/users";
 
 export const Route = createFileRoute("/users/$userId")({
-	beforeLoad: async () => {
-		const { session } = await getServerSession();
-		if (!session) {
-			return redirect({ to: "/demo/better-auth" }) as any;
-		}
-	},
-	component: UserDetail,
+  beforeLoad: async () => {
+    const { session } = await getServerSession();
+    if (!session) throw redirect({ to: "/login" });
+    try { await getUsers(); } catch { throw redirect({ to: "/dashboard" }); }
+  },
+  component: UserDetail,
 });
 
 function UserDetail() {
-	const { userId } = useParams({
-		from: "/users/$userId",
-	});
-	const queryClient = useQueryClient();
-	const updateRoleFn = useServerFn(updateUserRole);
-	const deleteFn = useServerFn(deleteUser);
+  const { userId } = useParams({ from: "/users/$userId" });
+  const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => getUsers(), retry: false });
+  if (usersQuery.isPending) return <main className="app-main page-wrap"><div className="loading-panel"><span className="spinner" /> Memuat detail pengguna…</div></main>;
+  if (usersQuery.isError) return <main className="app-main page-wrap"><div className="empty-state"><h2>Detail pengguna tidak dapat dimuat</h2><p>{usersQuery.error.message}</p><Link to="/users" className="button-secondary">Kembali ke pengguna</Link></div></main>;
+  const user = usersQuery.data.find((entry) => entry.id === userId);
+  if (!user) return <main className="app-main page-wrap"><div className="empty-state"><h2>Pengguna tidak ditemukan</h2><p>Akun mungkin sudah dihapus atau tidak tersedia.</p><Link to="/users" className="button-primary">Kembali ke pengguna</Link></div></main>;
+  return <UserDetailCard key={user.id} user={user} users={usersQuery.data} />;
+}
 
-	const usersQuery = useQuery({
-		queryKey: ["users"],
-		queryFn: async () => getUsers(),
-	});
-	const user = usersQuery.data?.find((u) => u.id === userId);
+function UserDetailCard({ user, users }: { user: { id: string; email: string; name: string | null; role: Role; emailVerified: boolean; createdAt: string }; users: Array<{ id: string; role: Role }> }) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const updateRoleFn = useServerFn(updateUserRole);
+  const deleteFn = useServerFn(deleteUser);
+  const [role, setRole] = useState<Role>(user.role);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const adminCount = users.filter((entry) => entry.role === "admin").length;
 
-	if (usersQuery.isPending) {
-		return (
-			<main className="page-wrap px-4 py-12">
-				<p className="text-[var(--sea-ink-soft)]">Loading user...</p>
-			</main>
-		);
-	}
-	if (!user) {
-		return (
-			<main className="page-wrap px-4 py-12">
-				<p className="text-[var(--sea-ink-soft)]">User not found.</p>
-			</main>
-		);
-	}
+  async function changeRole(nextRole: Role) {
+    if (nextRole === role) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await updateRoleFn({ data: { userId: user.id, role: nextRole } });
+      setRole(nextRole); setMessage("Peran pengguna berhasil diperbarui.");
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Peran gagal diperbarui."); }
+    finally { setBusy(false); }
+  }
 
-	const [localRole, setLocalRole] = useState<Role>(user.role);
-	const [message, setMessage] = useState("");
+  async function removeUser() {
+    if (!window.confirm(`Hapus akun ${user.name || user.email}? Tindakan ini tidak dapat dibatalkan.`)) return;
+    setBusy(true); setError("");
+    try {
+      await deleteFn({ data: { userId: user.id } });
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      await navigate({ to: "/users" });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Pengguna gagal dihapus."); setBusy(false); }
+  }
 
-	const handleRoleChange = async (next: Role) => {
-		if (next === localRole) return;
-		try {
-			await updateRoleFn({ data: { userId, role: next } });
-			setLocalRole(next);
-			setMessage("Role updated.");
-			await queryClient.invalidateQueries({ queryKey: ["users"] });
-		} catch (err) {
-			setMessage(err instanceof Error ? err.message : "Role update failed");
-		}
-	};
-
-	const handleDelete = async () => {
-		if (!window.confirm("Delete this user?")) {
-			return;
-		}
-		try {
-			await deleteFn({ data: { userId } });
-			window.location.href = "/users";
-		} catch (err) {
-			setMessage(err instanceof Error ? err.message : "Delete failed");
-		}
-	};
-
-	return (
-		<main className="page-wrap px-4 py-12">
-			<section className="island-shell rounded-2xl p-6 sm:p-8">
-				<div className="flex items-center gap-3 mb-6">
-					<Link
-						to="/users"
-						className="text-xs text-[var(--sea-ink-soft)] underline underline-offset-4 hover:text-[var(--sea-ink)]"
-					>
-						&larr; Back to users
-					</Link>
-					<h1 className="display-title text-3xl font-bold text-[var(--sea-ink)] sm:text-4xl">
-						User Details
-					</h1>
-				</div>
-
-				{message && <p className="mb-5 text-sm text-[var(--sea-ink)]">{message}</p>}
-
-				<div className="grid gap-4 sm:grid-cols-3">
-					<div className="rounded-xl border border-[var(--line)] bg-[var(--chip-bg)] p-5">
-						<p className="m-0 text-sm text-[var(--sea-ink-soft)]">Name</p>
-						<p className="m-0 mt-1 text-base font-medium text-[var(--sea-ink)]">
-							{user.name ?? "—"}
-						</p>
-					</div>
-					<div className="rounded-xl border border-[var(--line)] bg-[var(--chip-bg)] p-5">
-						<p className="m-0 text-sm text-[var(--sea-ink-soft)]">Email</p>
-						<p className="m-0 mt-1 text-base font-medium text-[var(--sea-ink)] break-all">
-							{user.email}
-						</p>
-					</div>
-					<div className="rounded-xl border border-[var(--line)] bg-[var(--chip-bg)] p-5">
-						<p className="m-0 text-sm text-[var(--sea-ink-soft)]">Role</p>
-						<select
-							value={localRole}
-							onChange={(e) => handleRoleChange(e.target.value as Role)}
-							className="rounded border border-[var(--line)] bg-[var(--chip-bg)] px-2 py-1 text-[var(--sea-ink)] focus:outline-none"
-						>
-							<option value="user">User</option>
-							<option value="admin">Administrator</option>
-						</select>
-					</div>
-				</div>
-
-				<div className="mt-8 flex gap-3">
-					<button
-						type="button"
-						onClick={handleDelete}
-						className="bg-red-50 border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 rounded-xl hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-800/30 transition-colors"
-					>
-						Delete User
-					</button>
-				</div>
-			</section>
-		</main>
-	);
+  return <main className="app-main page-wrap"><div className="page-heading"><div><Link to="/users" className="back-link"><ArrowLeft size={16} /> Kembali ke pengguna</Link><span className="eyebrow">RUANG KERJA / AKUN</span><h1>Detail pengguna</h1><p>Informasi akun dan kontrol akses untuk pengguna workspace.</p></div><span className="heading-icon"><UserRound size={24} /></span></div>
+    <section className="user-detail-card"><div className="user-detail-banner"><span className="user-detail-avatar">{(user.name || user.email).charAt(0).toUpperCase()}</span><div><h2>{user.name || "Tanpa nama"}</h2><p>{user.email}</p></div><span className={`role-badge ${role === "admin" ? "role-admin" : "role-user"}`}>{role === "admin" ? <ShieldCheck size={13} /> : <UserRound size={13} />}{role === "admin" ? "Administrator" : "Pengguna"}</span></div>
+      <div className="user-detail-info-grid"><article><span><Mail size={16} /> Email</span><strong>{user.email}</strong><small>{user.emailVerified ? "Email terverifikasi" : "Email belum terverifikasi"}</small></article><article><span><CalendarDays size={16} /> Bergabung</span><strong>{new Date(user.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</strong><small>Tanggal akun dibuat</small></article><article><span><ShieldCheck size={16} /> Peran akun</span><label className="sr-only" htmlFor="user-detail-role">Peran akun</label><select id="user-detail-role" value={role} disabled={busy || (role === "admin" && adminCount <= 1)} onChange={(event) => void changeRole(event.target.value as Role)}><option value="user">Pengguna</option><option value="admin">Administrator</option></select><small>Menentukan akses yang tersedia</small></article></div>
+      {error && <div className="form-error" role="alert">{error}</div>}{message && <div className="form-success" role="status">{message}</div>}
+      <div className="editor-actions editor-actions-between"><p className="user-detail-security"><ShieldCheck size={16} /> Perubahan diverifikasi di server.</p><button type="button" className="button-danger" onClick={() => void removeUser()} disabled={busy || (role === "admin" && adminCount <= 1)}><Trash2 size={16} /> {busy ? "Memproses…" : "Hapus pengguna"}</button></div>
+    </section>
+  </main>;
 }

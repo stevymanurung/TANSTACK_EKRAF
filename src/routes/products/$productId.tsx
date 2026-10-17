@@ -1,243 +1,91 @@
-import { useForm } from "@tanstack/react-form";
+import { ArrowLeft, Check, Image as ImageIcon, Save, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute, redirect, useParams } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ProductImageInput } from "@/components/products/ProductImageInput";
 import { getServerSession } from "@/lib/server/auth";
+import { getUsers } from "@/lib/server/users";
 import { deleteProduct, getProducts, updateProduct } from "@/lib/server/products";
-
-type FormData = {
-	name: string;
-	description: string;
-	price: string;
-	stock: string;
-};
+import type { Product } from "@/lib/db";
 
 export const Route = createFileRoute("/products/$productId")({
-	beforeLoad: async () => {
-		const { session } = await getServerSession();
-		if (!session) {
-			return redirect({ to: "/demo/better-auth" }) as any;
-		}
-	},
-	component: EditProduct,
+  beforeLoad: async () => {
+    const { session } = await getServerSession();
+    if (!session) throw redirect({ to: "/login" });
+  },
+  component: EditProduct,
 });
 
 function EditProduct() {
-	const { productId } = useParams({
-		from: "/products/$productId",
-	});
-	const queryClient = useQueryClient();
-	const updateFn = useServerFn(updateProduct);
-	const deleteFn = useServerFn(deleteProduct);
-	const [message, setMessage] = useState("");
-	const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const { productId } = useParams({ from: "/products/$productId" });
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const updateFn = useServerFn(updateProduct);
+  const deleteFn = useServerFn(deleteProduct);
+  const productQuery = useQuery({ queryKey: ["products"], queryFn: () => getProducts() });
+  const usersQuery = useQuery({ queryKey: ["users"], queryFn: () => getUsers(), retry: false });
+  const product = productQuery.data?.find((item) => item.id === productId);
+  if (productQuery.isPending) return <main className="app-main page-wrap"><div className="loading-panel"><span className="spinner" /> Memuat detail produk…</div></main>;
+  if (productQuery.isError) return <main className="app-main page-wrap"><div className="empty-state"><h2>Produk gagal dimuat</h2><p>{productQuery.error.message}</p><Link to="/products" className="button-secondary">Kembali ke produk</Link></div></main>;
+  if (!product) return <main className="app-main page-wrap"><div className="empty-state"><h2>Produk tidak ditemukan</h2><p>Produk mungkin sudah dihapus atau tidak tersedia.</p><Link to="/products" className="button-primary">Kembali ke katalog</Link></div></main>;
+  if (usersQuery.isPending) return <main className="app-main page-wrap"><div className="loading-panel"><span className="spinner" /> Memeriksa hak akses…</div></main>;
+  if (usersQuery.isError) return <ProductReadOnly product={product} />;
+  return <ProductEditor key={product.id} product={product} updateFn={updateFn} deleteFn={deleteFn} queryClient={queryClient} navigate={navigate} />;
+}
 
-	const productQuery = useQuery({
-		queryKey: ["product", productId],
-		queryFn: async () => {
-			const products = await getProducts();
-			return products.find((p) => p.id === productId);
-		},
-		enabled: !!productId,
-	});
-	const product = productQuery.data;
 
-	if (productQuery.isPending) {
-		return (
-			<main className="page-wrap px-4 py-12">
-				<p className="text-[var(--sea-ink-soft)]">Loading product...</p>
-			</main>
-		);
-	}
-	if (productQuery.isError) {
-		return (
-			<main className="page-wrap px-4 py-12">
-				<p className="text-[var(--sea-ink-soft)]">Error: {(productQuery.error as Error).message}</p>
-			</main>
-		);
-	}
-	if (!product) {
-		return (
-			<main className="page-wrap px-4 py-12">
-				<p className="text-[var(--sea-ink-soft)]">Product not found.</p>
-			</main>
-		);
-	}
+function ProductReadOnly({ product }: { product: Product }) {
+  return <main className="app-main page-wrap"><div className="page-heading"><div><Link to="/products" className="back-link"><ArrowLeft size={16} /> Kembali ke katalog</Link><span className="eyebrow">KATALOG PRODUK / DETAIL</span><h1>{product.name}</h1><p>Informasi produk dalam katalog workspace.</p></div><span className="heading-icon"><ImageIcon size={24} /></span></div>
+    <section className="product-readonly-card"><div className="product-readonly-image">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <ImageIcon size={38} />}</div><div className="product-readonly-copy"><span className={`stock-pill ${product.stock === 0 ? "stock-empty" : product.stock < 5 ? "stock-low" : "stock-available"}`}>{product.stock === 0 ? "Stok habis" : product.stock < 5 ? "Stok menipis" : "Tersedia"}</span><h2>{product.price.toLocaleString("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 })}</h2><p>{product.description}</p><div className="product-readonly-meta"><span><strong>Stok</strong>{product.stock} unit</span><span><strong>Dibuat</strong>{new Date(product.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span><span><strong>Diperbarui</strong>{new Date(product.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span></div></div></section>
+  </main>;
+}
 
-	const form = useForm({
-		defaultValues: {
-			name: product.name,
-			description: product.description,
-			price: String(product.price),
-			stock: String(product.stock),
-		} as FormData,
-		onSubmit: async ({ value }) => {
-			setMessage("");
-			if (!value.name || !value.description) {
-				setMessageType("error");
-				setMessage("Name and description are required.");
-				return;
-			}
-			const price = Number(value.price);
-			const stock = Number(value.stock);
-			if (!Number.isFinite(price) || price < 0) {
-				setMessageType("error");
-				setMessage("Price must be a valid positive number.");
-				return;
-			}
-			if (!Number.isFinite(stock) || stock < 0) {
-				setMessageType("error");
-				setMessage("Stock must be a valid positive number.");
-				return;
-			}
-			try {
-				await updateFn({
-					data: {
-						id: productId,
-						name: value.name,
-						description: value.description,
-						price,
-						stock,
-					},
-				});
-				setMessageType("success");
-				setMessage("Product updated successfully.");
-				await queryClient.invalidateQueries({ queryKey: ["products"] });
-			} catch (err) {
-				setMessageType("error");
-				setMessage(err instanceof Error ? err.message : "Update failed");
-			}
-		},
-	});
+function ProductEditor({ product, updateFn, deleteFn, queryClient, navigate }: {
+  product: Product;
+  updateFn: (opts: { data: { id: string; name: string; description: string; imageUrl?: string; price: number; stock: number } }) => Promise<unknown>;
+  deleteFn: (opts: { data: { id: string } }) => Promise<unknown>;
+  queryClient: ReturnType<typeof useQueryClient>;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const [name, setName] = useState(product.name);
+  const [description, setDescription] = useState(product.description);
+  const [price, setPrice] = useState(String(product.price));
+  const [stock, setStock] = useState(String(product.stock));
+  const [imageUrl, setImageUrl] = useState(product.imageUrl || "");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-	const errorsFor = (name: keyof FormData) => form.getFieldMeta(name)?.errors ?? [];
+  useEffect(() => { setName(product.name); setDescription(product.description); setPrice(String(product.price)); setStock(String(product.stock)); setImageUrl(product.imageUrl || ""); }, [product]);
 
-	const handleDelete = async () => {
-		if (!window.confirm("Delete this product?")) {
-			return;
-		}
-		try {
-			await deleteFn({ data: { id: productId } });
-			await queryClient.invalidateQueries({ queryKey: ["products"] });
-			window.location.href = "/products";
-		} catch (err) {
-			setMessageType("error");
-			setMessage(err instanceof Error ? err.message : "Delete failed");
-		}
-	};
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(""); setNotice(""); setSaving(true);
+    try {
+      await updateFn({ data: { id: product.id, name: name.trim(), description: description.trim(), price: Number(price), stock: Number(stock), imageUrl } });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      setNotice("Perubahan produk berhasil disimpan.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Produk gagal diperbarui."); }
+    finally { setSaving(false); }
+  }
 
-	return (
-		<main className="page-wrap px-4 py-12">
-			<section className="island-shell rounded-2xl p-6 sm:p-8">
-				<div className="flex items-center gap-3 mb-6">
-					<Link
-						to="/products"
-						className="text-xs text-[var(--sea-ink-soft)] underline underline-offset-4 hover:text-[var(--sea-ink)]"
-					>
-						&larr; Back to products
-					</Link>
-					<h1 className="display-title text-3xl font-bold text-[var(--sea-ink)] sm:text-4xl">
-						Edit Product
-					</h1>
-				</div>
+  async function removeProduct() {
+    if (!window.confirm(`Hapus produk “${product.name}”? Tindakan ini tidak dapat dibatalkan.`)) return;
+    setDeleting(true); setError("");
+    try { await deleteFn({ data: { id: product.id } }); await queryClient.invalidateQueries({ queryKey: ["products"] }); await navigate({ to: "/products" }); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Produk gagal dihapus."); setDeleting(false); }
+  }
 
-				<>
-					{message && (
-						<div
-							className={`mb-5 p-4 rounded-xl border ${
-								messageType === "success"
-									? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
-									: "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400"
-							}`}
-						>
-							{message}
-						</div>
-					)}
-
-					<form
-						onSubmit={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							form.handleSubmit();
-						}}
-						className="space-y-5"
-					>
-						<div className="space-y-2">
-							<Label htmlFor="name">Name</Label>
-							<Input
-								id="name"
-								value={form.getFieldValue("name")}
-								onChange={(e) => form.setFieldValue("name", e.target.value)}
-								className="w-full"
-							/>
-							{errorsFor("name").length > 0 && (
-								<p className="text-xs text-red-600">{errorsFor("name").join(", ")}</p>
-							)}
-						</div>
-
-						<div className="space-y-2">
-							<Label htmlFor="description">Description</Label>
-							<Input
-								id="description"
-								value={form.getFieldValue("description")}
-								onChange={(e) => form.setFieldValue("description", e.target.value)}
-								className="w-full"
-							/>
-							{errorsFor("description").length > 0 && (
-								<p className="text-xs text-red-600">{errorsFor("description").join(", ")}</p>
-							)}
-						</div>
-
-						<div className="grid gap-4 sm:grid-cols-2">
-							<div className="space-y-2">
-								<Label htmlFor="price">Price</Label>
-								<Input
-									id="price"
-									type="number"
-									value={form.getFieldValue("price")}
-									onChange={(e) => form.setFieldValue("price", e.target.value)}
-									className="w-full"
-								/>
-								{errorsFor("price").length > 0 && (
-									<p className="text-xs text-red-600">{errorsFor("price").join(", ")}</p>
-								)}
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="stock">Stock</Label>
-								<Input
-									id="stock"
-									type="number"
-									value={form.getFieldValue("stock")}
-									onChange={(e) => form.setFieldValue("stock", e.target.value)}
-									className="w-full"
-								/>
-								{errorsFor("stock").length > 0 && (
-									<p className="text-xs text-red-600">{errorsFor("stock").join(", ")}</p>
-								)}
-							</div>
-						</div>
-
-						<div className="pt-6 flex gap-3">
-							<Button type="submit" disabled={form.state.isSubmitting} className="w-full sm:w-auto">
-								{form.state.isSubmitting ? "Saving..." : "Save Changes"}
-							</Button>
-							<button
-								type="button"
-								onClick={handleDelete}
-								className="w-full sm:w-auto bg-red-50 border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 rounded-xl hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-800/30 transition-colors disabled:opacity-50"
-								disabled={form.state.isSubmitting}
-							>
-								Delete Product
-							</button>
-						</div>
-					</form>
-				</>
-			</section>
-		</main>
-	);
+  return <main className="app-main page-wrap"><div className="page-heading"><div><Link to="/products" className="back-link"><ArrowLeft size={16} /> Kembali ke produk</Link><span className="eyebrow">KATALOG PRODUK / EDIT</span><h1>Edit produk</h1><p>Perbarui informasi produk tanpa kehilangan data yang sudah ada.</p></div><span className="heading-icon"><ImageIcon size={24} /></span></div>
+    <form className="editor-card" onSubmit={submit}><div className="editor-section-heading"><span className="section-number">01</span><div><h2>Informasi utama</h2><p>Perubahan akan langsung terlihat setelah disimpan.</p></div></div>
+      <div className="field-grid"><label className="field-group field-span-2"><span>Nama produk <b>*</b></span><input className="field-input" value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} /></label><label className="field-group field-span-2"><span>Deskripsi <b>*</b></span><textarea className="field-input field-textarea" value={description} onChange={(e) => setDescription(e.target.value)} required maxLength={2000} rows={4} /></label></div>
+      <div className="editor-section-heading editor-section-separated"><span className="section-number">02</span><div><h2>Foto produk</h2><p>Ganti, unggah, atau hapus gambar produk.</p></div></div><ProductImageInput value={imageUrl} onChange={setImageUrl} />
+      <div className="editor-section-heading editor-section-separated"><span className="section-number">03</span><div><h2>Harga dan stok</h2><p>Periksa kembali harga dan ketersediaan produk.</p></div></div>
+      <div className="field-grid"><label className="field-group"><span>Harga (Rupiah) <b>*</b></span><div className="money-input"><span>Rp</span><input className="field-input" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required /></div></label><label className="field-group"><span>Stok <b>*</b></span><input className="field-input" type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} required /></label></div>
+      {error && <div className="form-error" role="alert">{error}</div>}{notice && <div className="form-success" role="status">{notice}</div>}
+      <div className="editor-actions editor-actions-between"><button type="button" className="button-danger" onClick={() => void removeProduct()} disabled={saving || deleting}><Trash2 size={16} /> {deleting ? "Menghapus…" : "Hapus produk"}</button><div className="editor-actions-right"><Link to="/products" className="button-secondary">Batal</Link><button className="button-primary" type="submit" disabled={saving || deleting}>{saving ? <><span className="spinner" /> Menyimpan…</> : <><Save size={17} /> Simpan perubahan</>}</button></div></div>
+    </form>
+  </main>;
 }

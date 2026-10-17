@@ -19,12 +19,14 @@ function Setup() {
 			setStatus("success");
 			setMessage(
 				result.alreadySeeded
-					? "Admin account already exists."
-					: "Admin account seeded. Sign in at /demo/better-auth with admin@example.com / admin12345",
+					? result.catalogSeeded
+						? "Akun administrator sudah tersedia. Katalog contoh berhasil diisi."
+						: "Akun administrator dan katalog contoh sudah tersedia."
+					: "Akun administrator berhasil dibuat dan katalog contoh ditambahkan. Masuk melalui /login menggunakan admin@example.com / admin12345.",
 			);
 		} catch (err) {
 			setStatus("error");
-			setMessage(err instanceof Error ? err.message : "Seed failed");
+			setMessage(err instanceof Error ? err.message : "Gagal menyiapkan akun.");
 		}
 	};
 
@@ -33,11 +35,11 @@ function Setup() {
 			<section className="island-shell rounded-2xl p-6 sm:p-8">
 				<p className="island-kicker mb-2">Setup</p>
 				<h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
-					Seed Admin Account
+					Siapkan Akun Administrator
 				</h1>
 				<p className="m-0 max-w-2xl text-base leading-8 text-[var(--sea-ink-soft)]">
-					This creates the administrator account (password is hashed by Better Auth) and seeds
-					sample products. Run this once after deploying.
+					Halaman ini membuat akun administrator (password di-hash oleh Better Auth) dan mengisi
+					contoh produk. Jalankan satu kali saat menyiapkan aplikasi.
 				</p>
 
 				<div className="mt-8">
@@ -47,7 +49,7 @@ function Setup() {
 						disabled={status === "loading"}
 						className="rounded-xl border border-[var(--line)] bg-[var(--chip-bg)] px-5 py-3 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:bg-[var(--link-bg-hover)] disabled:opacity-50"
 					>
-						{status === "loading" ? "Seeding..." : "Seed Admin Account"}
+						{status === "loading" ? "Menyiapkan…" : "Siapkan Akun Administrator"}
 					</button>
 
 					{status !== "idle" && (
@@ -68,12 +70,12 @@ function Setup() {
 
 					<div className="mt-6">
 						<p className="m-0 text-sm text-[var(--sea-ink-soft)]">
-							Already have an account?{" "}
+							Sudah punya akun?{" "}
 							<Link
-								to="/demo/better-auth"
+								to="/login"
 								className="underline underline-offset-4 font-medium hover:text-[var(--sea-ink)]"
 							>
-								Sign in
+								Masuk
 							</Link>
 						</p>
 					</div>

@@ -72,7 +72,7 @@ There is no persistent database. Data lives in memory for the life of the server
    - Creates `admin@example.com` / `admin12345` via `auth.api.signUpEmail` (password hashed by Better Auth) into the memory adapter.
    - Assigns the `admin` role.
    - Seeds 3 sample products.
-3. Sign in at `/demo/better-auth` with `admin@example.com` / `admin12345`.
+3. Sign in at `/login` with `admin@example.com` / `admin12345`.
 4. Open `/dashboard`, then `/products` or `/users`.
 
 ## Routes
@@ -80,15 +80,14 @@ There is no persistent database. Data lives in memory for the life of the server
 | Route | Access | Description |
 |---|---|---|
 | `/` | public | Home; sign-in prompt or dashboard link |
-| `/login` | public | Redirects to `/demo/better-auth` |
-| `/demo/better-auth` | public | Better Auth sign-in / sign-up (scaffold demo) |
+| `/login` | public | Renders the EKRAF sign-in experience |
 | `/setup` | public | One-time admin + sample data seed (`seedAdmin` server fn) |
 | `/dashboard` | auth | Protected overview (TanStack Query + server fns) |
-| `/products` | auth | Product list (TanStack Table + TanStack Query) |
+| `/products` | auth | Responsive product catalog with search, sorting, and stock status (TanStack Query) |
 | `/products/new` | auth + admin | Create product (TanStack Form) |
-| `/products/$productId` | auth + admin | Edit/delete product (TanStack Form) |
-| `/users` | auth + admin | User list + role management (TanStack Table) |
-| `/users/$userId` | auth + admin | User detail + role change / delete |
+| `/products/$productId` | auth | Product detail for users; edit/delete controls for administrators |
+| `/users` | auth + admin | Responsive user list, search, role management, and deletion |
+| `/users/$userId` | auth + admin | User detail, role change, and deletion |
 | `/api/auth/$` | public | Better Auth handler (`signIn`, `signUp`, `session`, etc.) |
 
 ## Key architectural decisions

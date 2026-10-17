@@ -32,3 +32,11 @@ The source was updated against `CHEATSHEET.md`. Automated `bun run lint`, `bun r
 ## Akses untuk semua anggota
 
 Alur tidak lagi operator-only: pendaftaran tetap tersedia, semua pengguna yang login dapat melakukan CRUD produk melalui UI dan server functions, sementara manajemen pengguna tetap admin-only. Kebijakan password pendaftaran ditegakkan di sisi server selain panduan validasi di formulir.
+
+
+## Follow-up: tombol dan navigasi
+
+- Memperbaiki urutan lapisan navigasi mobile (`z-index`) supaya menu hamburger dan tautan di dalam drawer berada di atas konten halaman dan bisa menerima klik.
+- Elemen dekoratif hero/login diberi `pointer-events: none` agar tidak menangkap klik yang seharusnya diterima kontrol di bawahnya.
+- `.env.example` sekarang menggunakan `http://localhost:3000`, sesuai port `bun dev`, agar konfigurasi Better Auth lokal tidak salah port.
+- Catatan: operasi yang membutuhkan server (login, seed, simpan/hapus produk, ubah role) tetap memerlukan deployment dengan environment variables yang benar. Karena penyimpanan memang in-memory, Vercel serverless tidak menjamin data/sesi konsisten antar-instance atau bertahan setelah cold start.
